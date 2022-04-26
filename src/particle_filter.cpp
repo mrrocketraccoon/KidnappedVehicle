@@ -30,8 +30,24 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    * NOTE: Consult particle_filter.h for more information about this method 
    *   (and others in this file).
    */
-  num_particles = 0;  // TODO: Set the number of particles
-
+  num_particles = 1000;  // TODO: Set the number of particles
+  for(uint8_t index = 0; index < num_particles; index++)
+  {
+    std::default_random_engine gen;
+    double std_x = 2, 
+    std_y = 2, 
+    std_theta = 0.05;
+    std::normal_distribution<double> dist_x(x, std_x);
+    std::normal_distribution<double> dist_y(y, std_y);
+    std::normal_distribution<double> dist_theta(theta, std_theta);
+    Particle initial_particle;
+    initial_particle.id = index;
+    initial_particle.x = dist_x(gen);
+    initial_particle.y = dist_y(gen);
+    initial_particle.theta = dist_theta(gen);
+    initial_particle.weight = 1;
+    particles.push_back(initial_particle);    
+  }
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], 
@@ -43,6 +59,22 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
+  for(auto& particle:particles)
+  {
+    std::default_random_engine gen;
+    double std_x = 2; 
+    double std_y = 2; 
+    double std_theta = 0.05;
+    double x_f = particle.x + (velocity/yaw_rate)*(sin(particle.theta+yaw_rate*delta_t)-sin(particle.theta));
+    double y_f = particle.y + (velocity/yaw_rate)*(cos(particle.theta)-cos(particle.theta+yaw_rate*delta_t));
+    double theta_f = particle.theta + yaw_rate*delta_t;
+    std::normal_distribution<double> dist_x(x_f, std_x);
+    std::normal_distribution<double> dist_y(y_f, std_y);
+    std::normal_distribution<double> dist_theta(theta_f, std_theta);
+    particle.x = dist_x(gen);
+    particle.y = dist_y(gen);
+    particle.theta = dist_theta(gen);
+  }
 
 }
 
@@ -56,7 +88,6 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   probably find it useful to implement this method and use it as a helper 
    *   during the updateWeights phase.
    */
-
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
