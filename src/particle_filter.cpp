@@ -35,7 +35,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     return;
   }
   
-  num_particles = 1000;  // TODO: Set the number of particles
+  num_particles = 50;  // TODO: Set the number of particles
   std::default_random_engine gen;
   double std_x = std[0]; 
   double std_y = std[1]; 
@@ -54,7 +54,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     initial_particle.theta = dist_theta(gen);
     initial_particle.weight = 1.0;
     particles.push_back(initial_particle);    
-    // std::cout << "id:" << initial_particle.id << " x:" << initial_particle.x << " y:" << initial_particle.y <<  std::endl;
+    //std::cout << "At least I'm initializing particle partcile with id:" << initial_particle.id << " x:" << initial_particle.x << " y:" << initial_particle.y << " w:" << initial_particle.weight <<  std::endl;
 
   }
   is_initialized = true;  
@@ -76,17 +76,17 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
   std::normal_distribution<double> dist_x(0, std_x);
   std::normal_distribution<double> dist_y(0, std_y);
   std::normal_distribution<double> dist_theta(0, std_theta);
-  std::cout << "At least I'm entering in the predict function" << std::endl;
+  //std::cout << "At least I'm entering in the predict function" << std::endl;
   for(auto& particle:particles)
   {
-    double x_f;
-    double y_f;
+    double x_f = particle.x;
+    double y_f = particle.y;
     double theta_f;
 
-    if (fabs(yaw_rate) < std::numeric_limits<double>::min())
+    if (fabs(yaw_rate) < 0.00001)
     {
-      x_f = velocity * delta_t * cos(particle.theta);
-      y_f = velocity * delta_t * sin(particle.theta);
+      x_f += velocity * delta_t * cos(particle.theta);
+      y_f += velocity * delta_t * sin(particle.theta);
       theta_f = particle.theta;
     }
     else
@@ -98,7 +98,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     particle.x = x_f + dist_x(gen);
     particle.y = y_f + dist_y(gen);
     particle.theta = theta_f + dist_theta(gen);
-    std::cout << "At least I'm trying to predict partcile with id:" << particle.id << " x:" << particle.x << " y:" << particle.y <<  std::endl;
+    //std::cout << "At least I'm trying to predict partcile with id:" << particle.id << " x:" << particle.x << " y:" << particle.y << " w:" << particle.weight <<  std::endl;
   }
 
 }
@@ -114,26 +114,21 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   during the updateWeights phase.
    */
   LandmarkObs nearest_neighbor;
-  vector<LandmarkObs> nearest_neighbor_observations;
 
-  for(auto& particle:particles)
+  for(auto& observation:observations)
   {  
-    for(uint i = 0; i<observations.size();i++)
-    {
-      //initialize closest distance variable
-      double closest_distance = sqrt(pow(observations[i].x-predicted[0].x,2)+pow(observations[i].y-predicted[0].y,2));
-      
-      for(auto& prediction:predicted)
+    //initialize closest distance variable
+    double closest_distance = std::numeric_limits<double>::max();
+    for(auto& prediction:predicted)
+    {  
+      double distance = sqrt(pow(observation.x-prediction.x,2)+pow(observation.y-prediction.y,2));
+      if(distance < closest_distance)
       {
-        double distance = sqrt(pow(observations[i].x-prediction.x,2)+pow(observations[i].y-prediction.y,2));
-        if(distance < closest_distance)
-        {
-          closest_distance = distance;
-          nearest_neighbor = observations[i];
-        }
+        closest_distance = distance;
+        nearest_neighbor = prediction;
       }
-      particle.associations.push_back(nearest_neighbor.id);
     }
+    observation.id = nearest_neighbor.id;
   }
 }
 
@@ -153,7 +148,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
-  std::cout << "At least I'm entering in the updateWeights function" << std::endl;
 
   double std_landmark_range = std_landmark[0];
   double std_landmark_heading = std_landmark[1];
@@ -219,13 +213,15 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
       if(weight == 0)
       {
-        particle.weight *= std::numeric_limits<float>::min();
+        particle.weight *= 0.00001;
       }
       else
       {
         particle.weight *= weight;
       }
     }
+    //std::cout << "At least I'm trying to update particle weights with id:" << particle.id << " x:" << particle.x << " y:" << particle.y << " w:" << particle.weight <<  std::endl;
+
   }
 }
 
@@ -236,7 +232,7 @@ void ParticleFilter::resample() {
    * NOTE: You may find std::discrete_distribution helpful here.
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
-  std::cout << "At least I'm entering in the resample function" << std::endl;
+  //std::cout << "At least I'm entering in the resample function" << std::endl;
 
   // Get weights and max weight.
   vector<double> weights;
@@ -270,6 +266,10 @@ void ParticleFilter::resample() {
   }
 
   particles = resampledParticles;
+  // for (auto& particle:particles)
+  // {
+  //   std::cout << "At least I'm trying to resample particles with id:" << particle.id << " x:" << particle.x << " y:" << particle.y << " w:" << particle.weight <<  std::endl;
+  // }
 }
 
 void ParticleFilter::SetAssociations(Particle& particle, 
